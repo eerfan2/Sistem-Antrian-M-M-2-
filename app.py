@@ -14,26 +14,28 @@ def queue_calculator():
             interarrival_time = float(request.form['interarrival_time'])
             service_time = float(request.form['service_time'])
 
-            # Validasi
+            # Validasi untuk nilai valid
             if interarrival_time <= 0 or service_time <= 0:
                 error = "Waktu antar kedatangan dan waktu pelayanan harus lebih besar dari nol."
-            elif interarrival_time < service_time:
-                error = "Waktu Antar Kedatangan harus lebih besar atau sama dengan Waktu Pelayanan per Pelayan."
             else:
                 # Perhitungan
                 arrival_rate = 1 / interarrival_time  # λ
                 service_rate = 1 / service_time  # μ
                 rho = arrival_rate / (2 * service_rate)  # Pemanfaatan pelayan
-                W = 1 / (service_rate - arrival_rate / 2)  # Waktu rata-rata dalam sistem
-                Wq = W - (1 / service_rate)  # Waktu rata-rata dalam antrian
+
+                if rho >= 1:
+                    error = "Peringatan: Sistem tidak stabil karena pemanfaatan pelayan (ρ) ≥ 1."
+                
+                W = 1 / (service_rate - arrival_rate / 2) if rho < 1 else float('inf')  # Waktu rata-rata dalam sistem
+                Wq = W - (1 / service_rate) if rho < 1 else float('inf')  # Waktu rata-rata dalam antrian
 
                 # Hasil
                 result = {
                     'lambda': round(arrival_rate, 4),
                     'mu': round(service_rate, 4),
                     'rho': round(rho, 4),
-                    'W': round(W, 4),
-                    'Wq': round(Wq, 4)
+                    'W': round(W, 4) if W != float('inf') else "Tak Terhingga",
+                    'Wq': round(Wq, 4) if Wq != float('inf') else "Tak Terhingga"
                 }
 
                 # Langkah-langkah perhitungan (MathJax format)
@@ -48,10 +50,10 @@ def queue_calculator():
                    $$\\rho = \\frac{{\\lambda}}{{2 \\mu}} = \\frac{{{round(arrival_rate, 4)}}}{{2 \\times {round(service_rate, 4)}}} = {round(rho, 4)}$$
 
                 4. Waktu Rata-rata dalam Sistem (W):
-                   $$W = \\frac{{1}}{{\\mu - \\frac{{\\lambda}}{{2}}}} = \\frac{{1}}{{{round(service_rate, 4)} - {round(arrival_rate / 2, 4)}}} = {round(W, 4)} \\text{{ menit}}$$
+                   $$W = \\frac{{1}}{{\\mu - \\frac{{\\lambda}}{{2}}}} = {round(W, 4) if W != float('inf') else "Tak Terhingga"} \\text{{ menit}}$$
 
                 5. Waktu Rata-rata dalam Antrian (Wq):
-                   $$W_q = W - \\frac{{1}}{{\\mu}} = {round(W, 4)} - \\frac{{1}}{{{round(service_rate, 4)}}} = {round(Wq, 4)} \\text{{ menit}}$$
+                   $$W_q = W - \\frac{{1}}{{\\mu}} = {round(Wq, 4) if Wq != float('inf') else "Tak Terhingga"} \\text{{ menit}}$$
                 """
         except Exception as e:
             error = f"Error: {e}"
